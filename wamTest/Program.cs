@@ -8,27 +8,22 @@ namespace wamTest
     internal static class Program
     {
         private const int ContentId = 22;
-        private static readonly AzureStorage Storage;
-        private static readonly IMediaService MediaService;
+        private static AzureStorage _storage;
+        private static IMediaService _mediaService;
         private const string JobIdentifierSchema = "Encoding {0} in content id {1}";
-
-        static Program()
-        {
-            var settings = new Settings();
-            Storage = new AzureStorage(settings);
-            MediaService = new AzureMediaService(settings, Storage, new AzureMediaServiceFactory(settings));
-        }
-
 
         public static void Main()
         {
+            var settings = new Settings();
+            _storage = new AzureStorage(settings);
+            _mediaService = new AzureMediaService(settings, _storage, new AzureMediaServiceFactory(settings));
             var message = UploadAndCreateJob().GetAwaiter().GetResult();
             var task = FinishEncodeJobAsync(message);
             while (!task.IsCompleted)
             {
                 var jobIdentifier = string.Format(JobIdentifierSchema, message.NewFileName, ContentId);
-                var resultingFile = Storage.GetContainer(ContentId.ToString()).GetBlob(message.NewFileName);
-                var progress = MediaService.GetEncodeProgressAsync(jobIdentifier, resultingFile).GetAwaiter().GetResult();
+                var resultingFile = _storage.GetContainer(ContentId.ToString()).GetBlob(message.NewFileName);
+                var progress = _mediaService.GetEncodeProgressAsync(jobIdentifier, resultingFile).GetAwaiter().GetResult();
                 Console.WriteLine($"JobId: {jobIdentifier}, status: {progress.Status} - {progress.ProgressPercentage}% ({progress.Errors})");
                 Thread.Sleep(1000);
             }
@@ -37,21 +32,21 @@ namespace wamTest
         private static async Task<CompleteMediaEncodingQueueMessageDto> UploadAndCreateJob()
         {
             var fileGuid = Guid.NewGuid().ToString("N").ToLower();
-            var newFileName = $"{fileGuid}{MediaService.EncodedFileExtension()}";
+            var newFileName = $"{fileGuid}{_mediaService.EncodedFileExtension()}";
             string jobId;
             using (var fileStream = new FileStream("movie.mp4", FileMode.Open, FileAccess.Read))
             {
                 var fileExtension = Path.GetExtension(fileStream.Name);
                 var originalBackupFileName = $"{fileGuid}_original{fileExtension}";
-                var originalBlob = Storage.GetContainer(ContentId.ToString()).GetBlob(originalBackupFileName);
+                var originalBlob = _storage.GetContainer(ContentId.ToString()).GetBlob(originalBackupFileName);
                 Console.WriteLine($"Uploading file {fileStream.Name} to blob");
                 await originalBlob.UploadFromStreamAsync(fileStream);
                 Console.WriteLine("Upload done");
-                var encodedBlob = Storage.GetContainer(ContentId.ToString()).GetBlob(newFileName);
+                var encodedBlob = _storage.GetContainer(ContentId.ToString()).GetBlob(newFileName);
                 await encodedBlob.UploadTextAsync(""); // Create empty blob
                 var jobIdentifier = string.Format(JobIdentifierSchema, newFileName, ContentId);
                 Console.WriteLine($"Starting encode job {jobIdentifier}");
-                var job = await MediaService.CreateEncodeJobAsync(originalBlob, encodedBlob.GetName(), jobIdentifier, CancellationToken.None);
+                var job = await _mediaService.CreateEncodeJobAsync(originalBlob, encodedBlob.GetName(), jobIdentifier, CancellationToken.None);
                 jobId = job.Id;
                 Console.WriteLine($"Encode job {jobId} started");
             }
@@ -66,7 +61,7 @@ namespace wamTest
         private static async Task FinishEncodeJobAsync(CompleteMediaEncodingQueueMessageDto message)
         {
             Console.WriteLine($"Working on encoding job id {message.JobIdentifier}, contentId {message.ContentId}, filename {message.NewFileName}");
-            await MediaService.FinishEncodeJobAsync(message.JobIdentifier, message.ContentId, message.NewFileName, CancellationToken.None);
+            await _mediaService.FinishEncodeJobAsync(message.JobIdentifier, message.ContentId, message.NewFileName, CancellationToken.None);
             Console.WriteLine($"Done with encoding job id {message.JobIdentifier}, contentId {message.ContentId}, filename {message.NewFileName}");
         }
     }
