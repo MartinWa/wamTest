@@ -11,6 +11,7 @@ namespace wamTest
         private static AzureStorage _storage;
         private static IMediaService _mediaService;
         private const string JobIdentifierSchema = "Encoding {0} in content id {1}";
+        private const string ContainerName = "test";
 
         public static void Main()
         {
@@ -19,14 +20,17 @@ namespace wamTest
             _mediaService = new AzureMediaService(settings, _storage, new AzureMediaServiceFactory(settings));
             var message = UploadAndCreateJob().GetAwaiter().GetResult();
             var task = FinishEncodeJobAsync(message);
-            while (!task.IsCompleted)
+            var status = EncodeStatus.NotFound;
+            while (status != EncodeStatus.Finished || status != EncodeStatus.Error)
             {
                 var jobIdentifier = string.Format(JobIdentifierSchema, message.NewFileName, ContentId);
-                var resultingFile = _storage.GetContainer(ContentId.ToString()).GetBlob(message.NewFileName);
+                var resultingFile = _storage.GetContainer(ContainerName).GetBlob(message.NewFileName);
                 var progress = _mediaService.GetEncodeProgressAsync(jobIdentifier, resultingFile).GetAwaiter().GetResult();
                 Console.WriteLine($"JobId: {jobIdentifier}, status: {progress.Status} - {progress.ProgressPercentage}% ({progress.Errors})");
                 Thread.Sleep(1000);
+                status = progress.Status;
             }
+            task.GetAwaiter().GetResult();
         }
 
         private static async Task<CompleteMediaEncodingQueueMessageDto> UploadAndCreateJob()
@@ -38,11 +42,11 @@ namespace wamTest
             {
                 var fileExtension = Path.GetExtension(fileStream.Name);
                 var originalBackupFileName = $"{fileGuid}_original{fileExtension}";
-                var originalBlob = _storage.GetContainer(ContentId.ToString()).GetBlob(originalBackupFileName);
+                var originalBlob = _storage.GetContainer(ContainerName).GetBlob(originalBackupFileName);
                 Console.WriteLine($"Uploading file {fileStream.Name} to blob");
                 await originalBlob.UploadFromStreamAsync(fileStream);
-                Console.WriteLine("Upload done");
-                var encodedBlob = _storage.GetContainer(ContentId.ToString()).GetBlob(newFileName);
+                Console.WriteLine($"Upload to {originalBackupFileName} done");
+                var encodedBlob = _storage.GetContainer(ContainerName).GetBlob(newFileName);
                 await encodedBlob.UploadTextAsync(""); // Create empty blob
                 var jobIdentifier = string.Format(JobIdentifierSchema, newFileName, ContentId);
                 Console.WriteLine($"Starting encode job {jobIdentifier}");

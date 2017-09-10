@@ -1,4 +1,5 @@
 using System;
+using System.Management.Instrumentation;
 using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace wamTest
@@ -29,15 +30,15 @@ namespace wamTest
                     return _container;
                 }
                 _container = _client.GetContainerReference(_containername);
-                if (_container.Exists())
-                {
-                    return _container;
-                }
-                _container.Create();
-                _container.SetPermissions(new BlobContainerPermissions
-                {
-                    PublicAccess = BlobContainerPublicAccessType.Off
-                });
+                //if (_container.Exists())
+                //{
+                //    return _container;
+                //}
+                //_container.Create();
+                //_container.SetPermissions(new BlobContainerPermissions
+                //{
+                //    PublicAccess = BlobContainerPublicAccessType.Off
+                //});
                 return _container;
             }
         }
