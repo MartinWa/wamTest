@@ -1,14 +1,13 @@
 ﻿using System;
 using Microsoft.WindowsAzure.MediaServices.Client;
-using Zero.Common;
 
-namespace Zero.Data.AzureMediaService
+namespace wamTest
 {
     public class AzureMediaServiceFactory
     {
         private readonly Lazy<CloudMediaContext> _context;
 
-        public AzureMediaServiceFactory(IZeroSettings settings)
+        public AzureMediaServiceFactory(ISettings settings)
         {
             var cachedCredentials = new MediaServicesCredentials(settings.MediaServiceAccountName, settings.MediaServiceAccountKey);
             _context = new Lazy<CloudMediaContext>(() => new CloudMediaContext(cachedCredentials));
