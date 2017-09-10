@@ -7,5 +7,6 @@ namespace wamTest
         public IEnumerable<string> SupportedVideoTypes => new List<string>();
         public string MediaServiceAccountName => "";
         public string MediaServiceAccountKey => "";
+        public string AzureStorageConnectionString => "";
     }
 }

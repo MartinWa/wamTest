@@ -17,7 +17,7 @@ namespace wamTest
         private static async Task MainAsync()
         {
             var settings = new Settings();
-            var storage = new AzureStorage();
+            var storage = new AzureStorage(settings);
             var mediaService = new AzureMediaService(settings, storage, new AzureMediaServiceFactory(settings));
             const int contentId = 22;
             var fileGuid = Guid.NewGuid().ToString("N").ToLower();

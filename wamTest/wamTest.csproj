@@ -127,6 +127,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AzureBlob.cs" />
+    <Compile Include="AzureContainer.cs" />
     <Compile Include="AzureMediaService.cs" />
     <Compile Include="AzureMediaServiceFactory.cs" />
     <Compile Include="AzureStorage.cs" />
@@ -138,6 +140,7 @@
     <Compile Include="IContainer.cs" />
     <Compile Include="IStorage.cs" />
     <Compile Include="MediaEncodeProgressDto.cs" />
+    <Compile Include="MimeTypeMap.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings.cs" />
