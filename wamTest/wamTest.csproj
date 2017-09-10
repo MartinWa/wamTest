@@ -129,6 +129,8 @@
   <ItemGroup>
     <Compile Include="AzureMediaService.cs" />
     <Compile Include="AzureMediaServiceFactory.cs" />
+    <Compile Include="AzureStorage.cs" />
+    <Compile Include="CompleteMediaEncodingQueueMessageDto.cs" />
     <Compile Include="EncodeStatus.cs" />
     <Compile Include="IMediaService.cs" />
     <Compile Include="ISettings.cs" />
@@ -138,6 +140,7 @@
     <Compile Include="MediaEncodeProgressDto.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Settings.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

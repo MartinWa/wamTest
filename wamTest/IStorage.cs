@@ -1,5 +1,3 @@
-using System.ComponentModel;
-
 namespace wamTest
 {
     public interface IStorage

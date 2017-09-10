@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.IO;
+using System.Threading.Tasks;
 
 namespace wamTest
 {
@@ -9,5 +10,7 @@ namespace wamTest
         string GetName();
         Task<string> GetPathAsync();
         Task<bool> CopyBlobAsync(IBlob original);
+        Task UploadTextAsync(string text);
+        Task UploadFromStreamAsync(Stream stream);
     }
 }
