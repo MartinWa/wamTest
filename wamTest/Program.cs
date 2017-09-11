@@ -37,23 +37,14 @@ namespace wamTest
         {
             var fileGuid = Guid.NewGuid().ToString("N").ToLower();
             var newFileName = $"{fileGuid}{_mediaService.EncodedFileExtension()}";
-            string jobId;
-            using (var fileStream = new FileStream("movie.mp4", FileMode.Open, FileAccess.Read))
-            {
-                var fileExtension = Path.GetExtension(fileStream.Name);
-                var originalBackupFileName = $"{fileGuid}_original{fileExtension}";
-                var originalBlob = _storage.GetContainer(ContainerName).GetBlob(originalBackupFileName);
-                Console.WriteLine($"Uploading file {fileStream.Name} to blob");
-                await originalBlob.UploadFromStreamAsync(fileStream);
-                Console.WriteLine($"Upload to {originalBackupFileName} done");
-                var encodedBlob = _storage.GetContainer(ContainerName).GetBlob(newFileName);
-                await encodedBlob.UploadTextAsync(""); // Create empty blob
-                var jobIdentifier = string.Format(JobIdentifierSchema, newFileName, ContentId);
-                Console.WriteLine($"Starting encode job {jobIdentifier}");
-                var job = await _mediaService.CreateEncodeJobAsync(originalBlob, encodedBlob.GetName(), jobIdentifier, CancellationToken.None);
-                jobId = job.Id;
-                Console.WriteLine($"Encode job {jobId} started");
-            }
+            var originalBlob = await UploadBlob("movie.mp4");
+            var encodedBlob = _storage.GetContainer(ContainerName).GetBlob(newFileName);
+            await encodedBlob.UploadTextAsync(""); // Create empty blob
+            var jobIdentifier = string.Format(JobIdentifierSchema, newFileName, ContentId);
+            Console.WriteLine($"Starting encode job {jobIdentifier}");
+            var job = await _mediaService.CreateEncodeJobAsync(originalBlob, encodedBlob.GetName(), jobIdentifier, CancellationToken.None);
+            var jobId = job.Id;
+            Console.WriteLine($"Encode job {jobId} started");
             var message = new CompleteMediaEncodingQueueMessageDto
             {
                 JobIdentifier = jobId,
@@ -62,6 +53,28 @@ namespace wamTest
             };
             return message;
         }
+
+        private static async Task<IBlob> UploadBlob(string file)
+        {
+            var fileExtension = Path.GetExtension(file);
+            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file);
+            var originalBackupFileName = $"{fileNameWithoutExtension}_original{fileExtension}";
+            var originalBlob = _storage.GetContainer(ContainerName).GetBlob(originalBackupFileName);
+            var size = await originalBlob.GetSizeAsync();
+            if (size > 0)
+            {
+                Console.WriteLine($"File {originalBlob.GetName()} already exists, {size} bytes, returning");
+                return originalBlob;
+            }
+            using (var fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
+            {
+                Console.WriteLine($"Uploading file {fileStream.Name} to blob");
+                await originalBlob.UploadFromStreamAsync(fileStream);
+                Console.WriteLine($"Upload to {originalBackupFileName} done");
+            }
+            return originalBlob;
+        }
+
         private static async Task FinishEncodeJobAsync(CompleteMediaEncodingQueueMessageDto message)
         {
             Console.WriteLine($"Working on encoding job id {message.JobIdentifier}, contentId {message.ContentId}, filename {message.NewFileName}");

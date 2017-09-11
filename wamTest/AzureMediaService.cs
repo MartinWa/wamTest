@@ -15,6 +15,7 @@ namespace wamTest
         private readonly ISettings _settings;
         private readonly Lazy<CloudMediaContext> _cloudMediaContext;
         private const string EncodedFileExtensionn = ".mp4";
+        private const string ContainerName = "test";
 
         public AzureMediaService(ISettings settings, IStorage storage, AzureMediaServiceFactory factory)
         {
@@ -55,7 +56,7 @@ namespace wamTest
             {
                 throw new InstanceNotFoundException($"No job with id {jobIdentifier} was found");
             }
-            var encoded = _storage.GetContainer(contentId.ToString()).GetBlob(newFilename);
+            var encoded = _storage.GetContainer(ContainerName).GetBlob(newFilename);
             var progressJobTask = job.GetExecutionProgressTask(cancellationToken);
             await progressJobTask;
             if (job.State == JobState.Error)
@@ -110,7 +111,8 @@ namespace wamTest
                     Errors = "Not found"
                 };
             }
-            var task = job.Tasks.FirstOrDefault();
+            // ReSharper disable once ReplaceWithSingleCallToFirstOrDefault Direct FirstOrDefault not supported
+            var task = job.Tasks.Where(j => j.Name == jobIdentifier).FirstOrDefault();
             var status = ConvertToEncodeStatus(job.State);
             if (status == EncodeStatus.Finished)
             {
