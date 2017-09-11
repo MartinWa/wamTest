@@ -21,7 +21,7 @@ namespace wamTest
             var message = UploadAndCreateJob().GetAwaiter().GetResult();
             var task = FinishEncodeJobAsync(message);
             var status = EncodeStatus.NotFound;
-            while (status != EncodeStatus.Finished || status != EncodeStatus.Error)
+            while (status != EncodeStatus.Finished && status != EncodeStatus.Error)
             {
                 var jobIdentifier = string.Format(JobIdentifierSchema, message.NewFileName, ContentId);
                 var resultingFile = _storage.GetContainer(ContainerName).GetBlob(message.NewFileName);
