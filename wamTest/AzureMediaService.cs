@@ -111,24 +111,42 @@ namespace wamTest
                     Errors = "Not found"
                 };
             }
-            // ReSharper disable once ReplaceWithSingleCallToFirstOrDefault Direct FirstOrDefault not supported
-            var task = job.Tasks.Where(j => j.Name == jobIdentifier).FirstOrDefault();
             var status = ConvertToEncodeStatus(job.State);
-            if (status == EncodeStatus.Finished)
+            switch (status)
             {
-                var exists = await resultingFile.ExistsAsync();
-                var size = await resultingFile.GetSizeAsync();
-                if (exists && size < 1)
-                {
-                    status = EncodeStatus.Copying;
-                }
+                case EncodeStatus.Processing:
+                    var progress = job.GetOverallProgress();
+                    return new MediaEncodeProgressDto
+                    {
+                        Status = status,
+                        ProgressPercentage = progress
+                    };
+                case EncodeStatus.Finished:
+                    var exists = await resultingFile.ExistsAsync();
+                    var size = await resultingFile.GetSizeAsync();
+                    if (exists && size < 1)
+                    {
+                        status = EncodeStatus.Copying;
+                    }
+                    return new MediaEncodeProgressDto
+                    {
+                        Status = status
+                    };
+                case EncodeStatus.Error:
+                    // ReSharper disable once ReplaceWithSingleCallToFirstOrDefault Direct FirstOrDefault not supported
+                    var task = job.Tasks.Where(j => j.Name == jobIdentifier).FirstOrDefault();
+                    return new MediaEncodeProgressDto
+                    {
+                        Status = status,
+                        ProgressPercentage = task?.Progress ?? 0,
+                        Errors = task == null ? string.Empty : string.Concat(task.ErrorDetails.Select(ed => ed.Message))
+                    };
+                default:
+                    return new MediaEncodeProgressDto
+                    {
+                        Status = status,
+                    };
             }
-            return new MediaEncodeProgressDto
-            {
-                Status = status,
-                ProgressPercentage = task?.Progress ?? 0,
-                Errors = task == null ? string.Empty : string.Concat(task.ErrorDetails.Select(ed => ed.Message))
-            };
         }
 
         private static EncodeStatus ConvertToEncodeStatus(JobState state)
